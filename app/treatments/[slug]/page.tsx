@@ -25,34 +25,45 @@ interface TreatmentDetailProps {
 }
 
 export async function generateMetadata({ params }: TreatmentDetailProps) {
-  const treatment = await prisma.treatment.findUnique({
-    where: { slug: params.slug },
-  });
+  try {
+    const treatment = await prisma.treatment.findUnique({
+      where: { slug: params.slug },
+    });
 
-  if (!treatment) {
+    if (!treatment) {
+      return {
+        title: 'Treatment | Roots Super Speciality Dental Clinic',
+      };
+    }
+
+    return {
+      title: `${treatment.name} in Hanamkonda & Kazipet | Roots Dental`,
+      description: treatment.summary,
+      openGraph: {
+        title: `${treatment.name} | Roots Super Speciality Dental Clinic`,
+        description: treatment.summary,
+        images: [
+          treatment.imageUrl ||
+            'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&h=630&q=80',
+        ],
+      },
+    };
+  } catch {
     return {
       title: 'Treatment | Roots Super Speciality Dental Clinic',
     };
   }
-
-  return {
-    title: `${treatment.name} in Hanamkonda & Kazipet | Roots Dental`,
-    description: treatment.summary,
-    openGraph: {
-      title: `${treatment.name} | Roots Super Speciality Dental Clinic`,
-      description: treatment.summary,
-      images: [
-        treatment.imageUrl ||
-          'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&h=630&q=80',
-      ],
-    },
-  };
 }
 
 export default async function TreatmentDetailPage({ params }: TreatmentDetailProps) {
-  const treatment = await prisma.treatment.findUnique({
-    where: { slug: params.slug },
-  });
+  let treatment = null;
+  try {
+    treatment = await prisma.treatment.findUnique({
+      where: { slug: params.slug },
+    });
+  } catch (err) {
+    console.error('Error loading treatment:', err);
+  }
 
   if (!treatment) {
     notFound();
