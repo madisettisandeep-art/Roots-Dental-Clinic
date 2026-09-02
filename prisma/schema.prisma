@@ -1,0 +1,177 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("ADMIN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Doctor {
+  id             String        @id @default(uuid())
+  name           String
+  qualifications String
+  specialization String
+  experience     String
+  bio            String
+  imageUrl       String
+  availableDays  String        @default("Mon,Tue,Wed,Thu,Fri,Sat")
+  active         Boolean       @default(true)
+  sortOrder      Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  appointments   Appointment[]
+}
+
+model Treatment {
+  id             String        @id @default(uuid())
+  slug           String        @unique
+  name           String
+  category       String
+  summary        String
+  description    String
+  indications    String // JSON stringified array of symptoms
+  procedureSteps String // JSON stringified array of step objects
+  benefits       String // JSON stringified array of strings
+  recoveryInfo   String
+  faqs           String // JSON stringified array of {q, a}
+  iconName       String        @default("Sparkles")
+  imageUrl       String?
+  featured       Boolean       @default(false)
+  active         Boolean       @default(true)
+  sortOrder      Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  appointments   Appointment[]
+}
+
+model Appointment {
+  id               String     @id @default(uuid())
+  appointmentId    String     @unique // e.g. ROOTS-2026-A1B2
+  patientName      String
+  phone            String
+  email            String?
+  preferredContact String     @default("WHATSAPP") // WHATSAPP, CALL, EMAIL
+  treatmentId      String
+  treatment        Treatment  @relation(fields: [treatmentId], references: [id])
+  doctorId         String?
+  doctor           Doctor?    @relation(fields: [doctorId], references: [id])
+  appointmentDate  String // YYYY-MM-DD
+  timeSlot         String // e.g. "10:00 AM"
+  status           String     @default("PENDING") // PENDING, CONFIRMED, RESCHEDULED, COMPLETED, CANCELLED, NO_SHOW
+  message          String?
+  source           String     @default("WEBSITE") // WEBSITE, WHATSAPP, GOOGLE, DIRECT
+  notes            String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([appointmentDate, timeSlot])
+  @@index([status])
+}
+
+model Review {
+  id                String   @id @default(uuid())
+  author            String
+  rating            Int      @default(5)
+  comment           String
+  treatmentCategory String?
+  date              String
+  verified          Boolean  @default(true)
+  source            String   @default("Google")
+  featured          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+}
+
+model GalleryItem {
+  id        String   @id @default(uuid())
+  title     String
+  category  String // CLINIC, EQUIPMENT, TREATMENTS, TEAM, PATIENT_EXPERIENCE
+  imageUrl  String
+  caption   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model BeforeAfter {
+  id                String   @id @default(uuid())
+  title             String
+  treatmentCategory String
+  beforeImage       String
+  afterImage        String
+  description       String
+  consentVerified   Boolean  @default(true)
+  createdAt         DateTime @default(now())
+}
+
+model FAQ {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  category  String   @default("General")
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model ClinicSetting {
+  id             String   @id @default("default")
+  clinicName     String   @default("ROOTS SUPER SPECIALITY DENTAL CLINIC")
+  tagline        String   @default("Advanced Dental Care • Precision, Comfort & Technology")
+  phone          String   @default("+91 98765 43210")
+  whatsAppNumber String   @default("+91 98765 43210")
+  email          String   @default("contact@rootsdental.com")
+  emergencyPhone String   @default("+91 98765 43210")
+  address        String   @default("Darga Road, near NIT, Revenue Colony, Subedari, Kazipet, Hanamkonda, Telangana 506004")
+  googleMapsUrl  String   @default("https://maps.google.com/?q=Roots+Super+Speciality+Dental+Clinic+Darga+Road+Kazipet+Hanamkonda+506004")
+  embedMapUrl    String   @default("https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3794.675765038162!2d79.531238475179!3d17.994464883002636!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a334f59c8888889%3A0x8888888888888888!2sRoots%20Super%20Speciality%20Dental%20Clinic!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin")
+  noticeBanner   String?
+  isOpenOverride String?  // "OPEN", "CLOSED", null
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model OpeningHour {
+  id        String  @id @default(uuid())
+  dayOfWeek String  // Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
+  openTime  String  // e.g. "09:30 AM"
+  closeTime String  // e.g. "08:30 PM"
+  isClosed  Boolean @default(false)
+  sortOrder Int     @default(0)
+}
+
+model Holiday {
+  id     String @id @default(uuid())
+  date   String // YYYY-MM-DD
+  reason String
+}
+
+model ContactEnquiry {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  email     String?
+  subject   String?
+  message   String
+  status    String   @default("NEW") // NEW, IN_PROGRESS, RESOLVED, CLOSED
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  entity     String
+  entityId   String?
+  details    String?
+  adminEmail String?
+  timestamp  DateTime @default(now())
+}
