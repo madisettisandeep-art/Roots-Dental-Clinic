@@ -1,6 +1,7 @@
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -23,7 +24,7 @@ model Doctor {
   qualifications String
   specialization String
   experience     String
-  bio            String
+  bio            String        @db.Text
   imageUrl       String
   availableDays  String        @default("Mon,Tue,Wed,Thu,Fri,Sat")
   active         Boolean       @default(true)
@@ -38,13 +39,13 @@ model Treatment {
   slug           String        @unique
   name           String
   category       String
-  summary        String
-  description    String
-  indications    String // JSON stringified array of symptoms
-  procedureSteps String // JSON stringified array of step objects
-  benefits       String // JSON stringified array of strings
-  recoveryInfo   String
-  faqs           String // JSON stringified array of {q, a}
+  summary        String        @db.Text
+  description    String        @db.Text
+  indications    String        @db.Text // JSON stringified array of symptoms
+  procedureSteps String        @db.Text // JSON stringified array of step objects
+  benefits       String        @db.Text // JSON stringified array of strings
+  recoveryInfo   String        @db.Text
+  faqs           String        @db.Text // JSON stringified array of {q, a}
   iconName       String        @default("Sparkles")
   imageUrl       String?
   featured       Boolean       @default(false)
@@ -69,9 +70,9 @@ model Appointment {
   appointmentDate  String // YYYY-MM-DD
   timeSlot         String // e.g. "10:00 AM"
   status           String     @default("PENDING") // PENDING, CONFIRMED, RESCHEDULED, COMPLETED, CANCELLED, NO_SHOW
-  message          String?
+  message          String?    @db.Text
   source           String     @default("WEBSITE") // WEBSITE, WHATSAPP, GOOGLE, DIRECT
-  notes            String?
+  notes            String?    @db.Text
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
@@ -83,7 +84,7 @@ model Review {
   id                String   @id @default(uuid())
   author            String
   rating            Int      @default(5)
-  comment           String
+  comment           String   @db.Text
   treatmentCategory String?
   date              String
   verified          Boolean  @default(true)
@@ -97,7 +98,7 @@ model GalleryItem {
   title     String
   category  String // CLINIC, EQUIPMENT, TREATMENTS, TEAM, PATIENT_EXPERIENCE
   imageUrl  String
-  caption   String?
+  caption   String?  @db.Text
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
 }
@@ -108,15 +109,15 @@ model BeforeAfter {
   treatmentCategory String
   beforeImage       String
   afterImage        String
-  description       String
+  description       String   @db.Text
   consentVerified   Boolean  @default(true)
   createdAt         DateTime @default(now())
 }
 
 model FAQ {
   id        String   @id @default(uuid())
-  question  String
-  answer    String
+  question  String   @db.Text
+  answer    String   @db.Text
   category  String   @default("General")
   sortOrder Int      @default(0)
   active    Boolean  @default(true)
@@ -131,20 +132,20 @@ model ClinicSetting {
   whatsAppNumber String   @default("+91 98765 43210")
   email          String   @default("contact@rootsdental.com")
   emergencyPhone String   @default("+91 98765 43210")
-  address        String   @default("Darga Road, near NIT, Revenue Colony, Subedari, Kazipet, Hanamkonda, Telangana 506004")
-  googleMapsUrl  String   @default("https://maps.google.com/?q=Roots+Super+Speciality+Dental+Clinic+Darga+Road+Kazipet+Hanamkonda+506004")
-  embedMapUrl    String   @default("https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3794.675765038162!2d79.531238475179!3d17.994464883002636!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a334f59c8888889%3A0x8888888888888888!2sRoots%20Super%20Speciality%20Dental%20Clinic!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin")
-  noticeBanner   String?
-  isOpenOverride String?  // "OPEN", "CLOSED", null
+  address        String   @default("Darga Road, near NIT, Revenue Colony, Subedari, Kazipet, Hanamkonda, Telangana 506004") @db.Text
+  googleMapsUrl  String   @default("https://maps.google.com/?q=Roots+Super+Speciality+Dental+Clinic+Darga+Road+Kazipet+Hanamkonda+506004") @db.Text
+  embedMapUrl    String   @default("https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3794.675765038162!2d79.531238475179!3d17.994464883002636!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a334f59c8888889%3A0x8888888888888888!2sRoots%20Super%20Speciality%20Dental%20Clinic!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin") @db.Text
+  noticeBanner   String?  @db.Text
+  isOpenOverride String? // "OPEN", "CLOSED", null
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
 
 model OpeningHour {
   id        String  @id @default(uuid())
-  dayOfWeek String  // Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
-  openTime  String  // e.g. "09:30 AM"
-  closeTime String  // e.g. "08:30 PM"
+  dayOfWeek String // Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
+  openTime  String // e.g. "09:30 AM"
+  closeTime String // e.g. "08:30 PM"
   isClosed  Boolean @default(false)
   sortOrder Int     @default(0)
 }
@@ -161,7 +162,7 @@ model ContactEnquiry {
   phone     String
   email     String?
   subject   String?
-  message   String
+  message   String   @db.Text
   status    String   @default("NEW") // NEW, IN_PROGRESS, RESOLVED, CLOSED
   createdAt DateTime @default(now())
 }
@@ -171,7 +172,7 @@ model AuditLog {
   action     String
   entity     String
   entityId   String?
-  details    String?
+  details    String?  @db.Text
   adminEmail String?
   timestamp  DateTime @default(now())
 }
