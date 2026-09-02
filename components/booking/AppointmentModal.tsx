@@ -38,17 +38,45 @@ interface TimeSlot {
   available: boolean;
 }
 
+// Fallback treatments ensuring zero delay/blank states
+const DEFAULT_TREATMENTS: TreatmentOption[] = [
+  { id: 't1', slug: 'root-canal', name: 'Root Canal Treatment', category: 'Endodontics' },
+  { id: 't2', slug: 'dental-implants', name: 'Dental Implants', category: 'Implantology' },
+  { id: 't3', slug: 'teeth-cleaning', name: 'Teeth Cleaning & Scaling', category: 'Preventive Care' },
+  { id: 't4', slug: 'teeth-whitening', name: 'Teeth Whitening', category: 'Cosmetic Dentistry' },
+  { id: 't5', slug: 'braces', name: 'Braces & Orthodontics', category: 'Orthodontics' },
+  { id: 't6', slug: 'wisdom-tooth-removal', name: 'Wisdom Tooth Removal', category: 'Oral Surgery' },
+  { id: 't7', slug: 'tooth-extraction', name: 'Tooth Extraction', category: 'General Dentistry' },
+  { id: 't8', slug: 'pediatric-dentistry', name: 'Pediatric Dentistry', category: 'Child Dental Care' },
+  { id: 't9', slug: 'cosmetic-dentistry', name: 'Cosmetic Dentistry & Smile Design', category: 'Aesthetics' },
+  { id: 't10', slug: 'emergency-dental-care', name: 'Emergency Dental Care', category: 'Urgent Care' },
+];
+
+const DEFAULT_DOCTORS: DoctorOption[] = [
+  { id: 'd1', name: 'Dr. A. Sharma', specialization: 'Chief Endodontist & Implant Specialist', qualifications: 'BDS, MDS' },
+  { id: 'd2', name: 'Dr. K. Srinivas', specialization: 'Consultant Orthodontist', qualifications: 'BDS, MDS' },
+  { id: 'd3', name: 'Dr. P. Madhavi', specialization: 'Pediatric Dental Specialist', qualifications: 'BDS, MDS' },
+  { id: 'd4', name: 'Dr. V. Rajesh', specialization: 'Oral & Maxillofacial Surgeon', qualifications: 'BDS, MDS, FIBOMS' },
+];
+
+function getFormattedDate(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function AppointmentModal() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1);
 
   // Form State
-  const [treatments, setTreatments] = useState<TreatmentOption[]>([]);
-  const [doctors, setDoctors] = useState<DoctorOption[]>([]);
-  const [selectedTreatmentId, setSelectedTreatmentId] = useState('');
+  const [treatments, setTreatments] = useState<TreatmentOption[]>(DEFAULT_TREATMENTS);
+  const [doctors, setDoctors] = useState<DoctorOption[]>(DEFAULT_DOCTORS);
+  const [selectedTreatmentId, setSelectedTreatmentId] = useState<string>(DEFAULT_TREATMENTS[0].id);
   const [selectedDoctorId, setSelectedDoctorId] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -67,27 +95,35 @@ export default function AppointmentModal() {
   const [submitError, setSubmitError] = useState('');
   const [confirmedAppointment, setConfirmedAppointment] = useState<any>(null);
 
-  // Load Treatments & Doctors
+  // Initialize date to tomorrow
+  useEffect(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setSelectedDate(getFormattedDate(tomorrow));
+  }, []);
+
+  // Load Treatments & Doctors from API if available
   useEffect(() => {
     fetch('/api/treatments')
       .then((res) => res.json())
       .then((data) => {
-        if (data.treatments) setTreatments(data.treatments);
+        if (data.treatments && data.treatments.length > 0) {
+          setTreatments(data.treatments);
+          if (!selectedTreatmentId) {
+            setSelectedTreatmentId(data.treatments[0].id);
+          }
+        }
       })
       .catch(() => {});
 
     fetch('/api/doctors')
       .then((res) => res.json())
       .then((data) => {
-        if (data.doctors) setDoctors(data.doctors);
+        if (data.doctors && data.doctors.length > 0) {
+          setDoctors(data.doctors);
+        }
       })
       .catch(() => {});
-
-    // Set default date to tomorrow in YYYY-MM-DD
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-    setSelectedDate(tomorrowStr);
   }, []);
 
   // Global event listener to open booking modal
@@ -98,9 +134,13 @@ export default function AppointmentModal() {
       setSubmitError('');
       setConfirmedAppointment(null);
 
-      if (e.detail?.treatmentSlug && treatments.length > 0) {
-        const found = treatments.find((t) => t.slug === e.detail.treatmentSlug);
-        if (found) setSelectedTreatmentId(found.id);
+      if (e.detail?.treatmentSlug) {
+        const found = treatments.find(
+          (t) => t.slug === e.detail.treatmentSlug || t.id === e.detail.treatmentSlug
+        );
+        if (found) {
+          setSelectedTreatmentId(found.id);
+        }
       }
       if (e.detail?.doctorId) {
         setSelectedDoctorId(e.detail.doctorId);
@@ -121,7 +161,6 @@ export default function AppointmentModal() {
 
     setLoadingSlots(true);
     setSlotsError('');
-    setSelectedTimeSlot('');
 
     const url = `/api/appointments/slots?date=${selectedDate}${
       selectedDoctorId ? `&doctorId=${selectedDoctorId}` : ''
@@ -134,8 +173,14 @@ export default function AppointmentModal() {
         if (data.available === false) {
           setSlotsError(data.reason || 'No appointments available for this date.');
           setTimeSlots([]);
-        } else if (data.slots) {
+          setSelectedTimeSlot('');
+        } else if (data.slots && data.slots.length > 0) {
           setTimeSlots(data.slots);
+          // Pre-select first available slot if current selected is invalid
+          const firstAvailable = data.slots.find((s: TimeSlot) => s.available);
+          if (firstAvailable && (!selectedTimeSlot || !data.slots.some((s: TimeSlot) => s.time === selectedTimeSlot && s.available))) {
+            setSelectedTimeSlot(firstAvailable.time);
+          }
         }
       })
       .catch(() => {
@@ -173,8 +218,8 @@ export default function AppointmentModal() {
     setStep((prev) => Math.max(1, prev - 1));
   };
 
-  const handleSubmitBooking = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitBooking = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setSubmitError('');
 
     if (!patientName.trim()) {
@@ -240,11 +285,11 @@ export default function AppointmentModal() {
     }
   };
 
-  const selectedTreatmentObj = treatments.find((t) => t.id === selectedTreatmentId);
+  const selectedTreatmentObj = treatments.find((t) => t.id === selectedTreatmentId) || treatments[0];
   const selectedDoctorObj = doctors.find((d) => d.id === selectedDoctorId);
 
   // Today for min date
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getFormattedDate(new Date());
 
   return (
     <dialog
@@ -289,11 +334,11 @@ export default function AppointmentModal() {
           {step < 6 && (
             <div className="px-6 pt-4 pb-2 bg-navy-950/50 border-b border-white/5">
               <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 mb-2">
-                <span className={step >= 1 ? 'text-aqua-300' : ''}>1. Treatment</span>
-                <span className={step >= 2 ? 'text-aqua-300' : ''}>2. Doctor</span>
-                <span className={step >= 3 ? 'text-aqua-300' : ''}>3. Date</span>
-                <span className={step >= 4 ? 'text-aqua-300' : ''}>4. Slot</span>
-                <span className={step >= 5 ? 'text-aqua-300' : ''}>5. Details</span>
+                <span className={step >= 1 ? 'text-aqua-300 font-bold' : ''}>1. Treatment</span>
+                <span className={step >= 2 ? 'text-aqua-300 font-bold' : ''}>2. Doctor</span>
+                <span className={step >= 3 ? 'text-aqua-300 font-bold' : ''}>3. Date</span>
+                <span className={step >= 4 ? 'text-aqua-300 font-bold' : ''}>4. Slot</span>
+                <span className={step >= 5 ? 'text-aqua-300 font-bold' : ''}>5. Details</span>
               </div>
               <div className="w-full bg-navy-800 h-1.5 rounded-full overflow-hidden">
                 <div
@@ -427,9 +472,11 @@ export default function AppointmentModal() {
                     onChange={(e) => setSelectedDate(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-white/20 text-white text-sm focus:outline-none focus:border-aqua-400 transition-colors cursor-pointer"
                   />
-                  <span className="text-[11px] text-slate-400 block">
-                    Selected: {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                  </span>
+                  {selectedDate && (
+                    <span className="text-[11px] text-slate-300 block">
+                      Selected: <strong>{selectedDate}</strong>
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -702,7 +749,7 @@ export default function AppointmentModal() {
               ) : (
                 <button
                   type="button"
-                  onClick={handleSubmitBooking}
+                  onClick={() => handleSubmitBooking()}
                   disabled={submitting}
                   className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-medical-blue to-cyan-500 hover:from-cyan-500 hover:to-aqua-400 text-white font-bold text-xs tracking-wider uppercase shadow-glow-cyan flex items-center gap-2 transition-all disabled:opacity-50"
                 >

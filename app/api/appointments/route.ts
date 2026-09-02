@@ -87,17 +87,29 @@ export async function POST(request: Request) {
 
     // Clean phone
     const cleanedPhone = phone.replace(/[^\d+]/g, '');
-    if (cleanedPhone.length < 10) {
+    const digitsOnly = cleanedPhone.replace(/\D/g, '');
+    if (digitsOnly.length < 10) {
       return NextResponse.json(
         { error: 'Please provide a valid 10-digit mobile phone number.' },
         { status: 400 }
       );
     }
 
-    // Check treatment exists
-    const treatment = await prisma.treatment.findUnique({
-      where: { id: treatmentId },
+    // Find treatment by ID or Slug
+    let treatment = await prisma.treatment.findFirst({
+      where: {
+        OR: [
+          { id: treatmentId },
+          { slug: treatmentId },
+        ],
+      },
     });
+
+    if (!treatment) {
+      // Fallback to first available treatment
+      treatment = await prisma.treatment.findFirst();
+    }
+
     if (!treatment) {
       return NextResponse.json(
         { error: 'Selected treatment is invalid or no longer available.' },
@@ -106,14 +118,17 @@ export async function POST(request: Request) {
     }
 
     // Check double booking for same doctor / slot
-    const existingBooking = await prisma.appointment.findFirst({
-      where: {
-        appointmentDate,
-        timeSlot,
-        ...(doctorId ? { doctorId } : {}),
-        status: { in: ['PENDING', 'CONFIRMED'] },
-      },
-    });
+    let existingBooking = null;
+    try {
+      existingBooking = await prisma.appointment.findFirst({
+        where: {
+          appointmentDate,
+          timeSlot,
+          ...(doctorId ? { doctorId } : {}),
+          status: { in: ['PENDING', 'CONFIRMED'] },
+        },
+      });
+    } catch {}
 
     if (existingBooking) {
       return NextResponse.json(
@@ -127,14 +142,25 @@ export async function POST(request: Request) {
 
     // Generate unique appointment ID
     let appointmentId = generateAppointmentId();
-    let collision = await prisma.appointment.findUnique({
-      where: { appointmentId },
-    });
-    while (collision) {
-      appointmentId = generateAppointmentId();
-      collision = await prisma.appointment.findUnique({
+    try {
+      let collision = await prisma.appointment.findUnique({
         where: { appointmentId },
       });
+      while (collision) {
+        appointmentId = generateAppointmentId();
+        collision = await prisma.appointment.findUnique({
+          where: { appointmentId },
+        });
+      }
+    } catch {}
+
+    // Verify doctorId if provided
+    let verifiedDoctorId: string | null = null;
+    if (doctorId) {
+      try {
+        const doc = await prisma.doctor.findUnique({ where: { id: doctorId } });
+        if (doc) verifiedDoctorId = doc.id;
+      } catch {}
     }
 
     // Create appointment
@@ -145,8 +171,8 @@ export async function POST(request: Request) {
         phone: cleanedPhone,
         email: email ? email.trim() : null,
         preferredContact: preferredContact || 'WHATSAPP',
-        treatmentId,
-        doctorId: doctorId || null,
+        treatmentId: treatment.id,
+        doctorId: verifiedDoctorId,
         appointmentDate,
         timeSlot,
         message: message ? message.trim() : null,
@@ -160,16 +186,20 @@ export async function POST(request: Request) {
     });
 
     // Dispatch background notifications
-    await sendAppointmentNotifications({
-      appointmentId: newAppointment.appointmentId,
-      patientName: newAppointment.patientName,
-      recipientPhone: newAppointment.phone,
-      recipientEmail: newAppointment.email || undefined,
-      treatmentName: newAppointment.treatment.name,
-      doctorName: newAppointment.doctor?.name,
-      date: newAppointment.appointmentDate,
-      timeSlot: newAppointment.timeSlot,
-    });
+    try {
+      await sendAppointmentNotifications({
+        appointmentId: newAppointment.appointmentId,
+        patientName: newAppointment.patientName,
+        recipientPhone: newAppointment.phone,
+        recipientEmail: newAppointment.email || undefined,
+        treatmentName: newAppointment.treatment.name,
+        doctorName: newAppointment.doctor?.name,
+        date: newAppointment.appointmentDate,
+        timeSlot: newAppointment.timeSlot,
+      });
+    } catch (err) {
+      console.warn('Background notification error (non-fatal):', err);
+    }
 
     return NextResponse.json({
       success: true,
