@@ -590,7 +590,7 @@ export default function AppointmentModal() {
 
                   <div>
                     <label htmlFor="patient-email-input" className="text-xs font-semibold text-slate-300 block mb-1">
-                      Email Address (Optional)
+                      Email Address <span className="text-aqua-400 font-normal">(for instant email confirmation)</span>
                     </label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
