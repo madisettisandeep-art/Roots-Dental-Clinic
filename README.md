@@ -58,13 +58,13 @@
 - **Styling**: Tailwind CSS (Medical Luxury Theme)
 - **3D Graphics**: Three.js / WebGL
 - **Animation**: Framer Motion & Canvas Confetti
-- **ORM & Database**: Prisma ORM with SQLite (PostgreSQL compatible)
+- **ORM & Database**: Prisma ORM with SQLite (100% self-contained)
 - **Icons**: Lucide React
 - **Auth**: JWT + Bcrypt
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Zero External Dependencies)
 
 ### 1. Clone and Install Dependencies
 ```bash
