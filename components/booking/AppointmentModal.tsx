@@ -38,25 +38,25 @@ interface TimeSlot {
   available: boolean;
 }
 
-// Fallback treatments ensuring zero delay/blank states
+// Fallback treatments using matching unique slugs as IDs
 const DEFAULT_TREATMENTS: TreatmentOption[] = [
-  { id: 't1', slug: 'root-canal', name: 'Root Canal Treatment', category: 'Endodontics' },
-  { id: 't2', slug: 'dental-implants', name: 'Dental Implants', category: 'Implantology' },
-  { id: 't3', slug: 'teeth-cleaning', name: 'Teeth Cleaning & Scaling', category: 'Preventive Care' },
-  { id: 't4', slug: 'teeth-whitening', name: 'Teeth Whitening', category: 'Cosmetic Dentistry' },
-  { id: 't5', slug: 'braces', name: 'Braces & Orthodontics', category: 'Orthodontics' },
-  { id: 't6', slug: 'wisdom-tooth-removal', name: 'Wisdom Tooth Removal', category: 'Oral Surgery' },
-  { id: 't7', slug: 'tooth-extraction', name: 'Tooth Extraction', category: 'General Dentistry' },
-  { id: 't8', slug: 'pediatric-dentistry', name: 'Pediatric Dentistry', category: 'Child Dental Care' },
-  { id: 't9', slug: 'cosmetic-dentistry', name: 'Cosmetic Dentistry & Smile Design', category: 'Aesthetics' },
-  { id: 't10', slug: 'emergency-dental-care', name: 'Emergency Dental Care', category: 'Urgent Care' },
+  { id: 'root-canal', slug: 'root-canal', name: 'Root Canal Treatment', category: 'Endodontics' },
+  { id: 'dental-implants', slug: 'dental-implants', name: 'Dental Implants', category: 'Implantology' },
+  { id: 'teeth-cleaning', slug: 'teeth-cleaning', name: 'Teeth Cleaning & Scaling', category: 'Preventive Care' },
+  { id: 'teeth-whitening', slug: 'teeth-whitening', name: 'Teeth Whitening', category: 'Cosmetic Dentistry' },
+  { id: 'braces', slug: 'braces', name: 'Braces & Orthodontics', category: 'Orthodontics' },
+  { id: 'wisdom-tooth-removal', slug: 'wisdom-tooth-removal', name: 'Wisdom Tooth Removal', category: 'Oral Surgery' },
+  { id: 'tooth-extraction', slug: 'tooth-extraction', name: 'Tooth Extraction', category: 'General Dentistry' },
+  { id: 'pediatric-dentistry', slug: 'pediatric-dentistry', name: 'Pediatric Dentistry', category: 'Child Dental Care' },
+  { id: 'cosmetic-dentistry', slug: 'cosmetic-dentistry', name: 'Cosmetic Dentistry & Smile Design', category: 'Aesthetics' },
+  { id: 'emergency-dental-care', slug: 'emergency-dental-care', name: 'Emergency Dental Care', category: 'Urgent Care' },
 ];
 
 const DEFAULT_DOCTORS: DoctorOption[] = [
-  { id: 'd1', name: 'Dr. A. Sharma', specialization: 'Chief Endodontist & Implant Specialist', qualifications: 'BDS, MDS' },
-  { id: 'd2', name: 'Dr. K. Srinivas', specialization: 'Consultant Orthodontist', qualifications: 'BDS, MDS' },
-  { id: 'd3', name: 'Dr. P. Madhavi', specialization: 'Pediatric Dental Specialist', qualifications: 'BDS, MDS' },
-  { id: 'd4', name: 'Dr. V. Rajesh', specialization: 'Oral & Maxillofacial Surgeon', qualifications: 'BDS, MDS, FIBOMS' },
+  { id: 'doc-1', name: 'Dr. A. Sharma', specialization: 'Chief Endodontist & Implant Specialist', qualifications: 'BDS, MDS' },
+  { id: 'doc-2', name: 'Dr. K. Srinivas', specialization: 'Consultant Orthodontist', qualifications: 'BDS, MDS' },
+  { id: 'doc-3', name: 'Dr. P. Madhavi', specialization: 'Pediatric Dental Specialist', qualifications: 'BDS, MDS' },
+  { id: 'doc-4', name: 'Dr. V. Rajesh', specialization: 'Oral & Maxillofacial Surgeon', qualifications: 'BDS, MDS, FIBOMS' },
 ];
 
 function getFormattedDate(d: Date): string {
@@ -74,7 +74,7 @@ export default function AppointmentModal() {
   // Form State
   const [treatments, setTreatments] = useState<TreatmentOption[]>(DEFAULT_TREATMENTS);
   const [doctors, setDoctors] = useState<DoctorOption[]>(DEFAULT_DOCTORS);
-  const [selectedTreatmentId, setSelectedTreatmentId] = useState<string>(DEFAULT_TREATMENTS[0].id);
+  const [selectedTreatmentId, setSelectedTreatmentId] = useState<string>(DEFAULT_TREATMENTS[0].slug);
   const [selectedDoctorId, setSelectedDoctorId] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
@@ -110,7 +110,7 @@ export default function AppointmentModal() {
         if (data.treatments && data.treatments.length > 0) {
           setTreatments(data.treatments);
           if (!selectedTreatmentId) {
-            setSelectedTreatmentId(data.treatments[0].id);
+            setSelectedTreatmentId(data.treatments[0].slug || data.treatments[0].id);
           }
         }
       })
@@ -139,7 +139,7 @@ export default function AppointmentModal() {
           (t) => t.slug === e.detail.treatmentSlug || t.id === e.detail.treatmentSlug
         );
         if (found) {
-          setSelectedTreatmentId(found.id);
+          setSelectedTreatmentId(found.slug || found.id);
         }
       }
       if (e.detail?.doctorId) {
@@ -176,7 +176,6 @@ export default function AppointmentModal() {
           setSelectedTimeSlot('');
         } else if (data.slots && data.slots.length > 0) {
           setTimeSlots(data.slots);
-          // Pre-select first available slot if current selected is invalid
           const firstAvailable = data.slots.find((s: TimeSlot) => s.available);
           if (firstAvailable && (!selectedTimeSlot || !data.slots.some((s: TimeSlot) => s.time === selectedTimeSlot && s.available))) {
             setSelectedTimeSlot(firstAvailable.time);
@@ -245,15 +244,15 @@ export default function AppointmentModal() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          patientName,
-          phone,
-          email,
+          patientName: patientName.trim(),
+          phone: cleanPhone,
+          email: email.trim() || undefined,
           preferredContact,
           treatmentId: selectedTreatmentId,
           doctorId: selectedDoctorId || undefined,
           appointmentDate: selectedDate,
           timeSlot: selectedTimeSlot,
-          message,
+          message: message.trim() || undefined,
           source: 'WEBSITE',
         }),
       });
@@ -285,8 +284,9 @@ export default function AppointmentModal() {
     }
   };
 
-  const selectedTreatmentObj = treatments.find((t) => t.id === selectedTreatmentId) || treatments[0];
-  const selectedDoctorObj = doctors.find((d) => d.id === selectedDoctorId);
+  const selectedTreatmentObj =
+    treatments.find((t) => t.id === selectedTreatmentId || t.slug === selectedTreatmentId) ||
+    treatments[0];
 
   // Today for min date
   const todayStr = getFormattedDate(new Date());
@@ -369,29 +369,32 @@ export default function AppointmentModal() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[340px] overflow-y-auto pr-1">
-                  {treatments.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedTreatmentId(t.id);
-                        setSubmitError('');
-                      }}
-                      className={`p-3.5 rounded-2xl text-left border transition-all ${
-                        selectedTreatmentId === t.id
-                          ? 'bg-navy-800 border-aqua-400 shadow-glow-cyan'
-                          : 'bg-navy-950/60 border-white/10 hover:border-white/20'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-white">{t.name}</span>
-                        {selectedTreatmentId === t.id && (
-                          <CheckCircle2 className="w-4 h-4 text-aqua-400" />
-                        )}
-                      </div>
-                      <span className="text-[11px] text-slate-400 block mt-1">{t.category}</span>
-                    </button>
-                  ))}
+                  {treatments.map((t) => {
+                    const isSelected = selectedTreatmentId === t.id || selectedTreatmentId === t.slug;
+                    return (
+                      <button
+                        key={t.id || t.slug}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTreatmentId(t.slug || t.id);
+                          setSubmitError('');
+                        }}
+                        className={`p-3.5 rounded-2xl text-left border transition-all ${
+                          isSelected
+                            ? 'bg-navy-800 border-aqua-400 shadow-glow-cyan'
+                            : 'bg-navy-950/60 border-white/10 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white">{t.name}</span>
+                          {isSelected && (
+                            <CheckCircle2 className="w-4 h-4 text-aqua-400" />
+                          )}
+                        </div>
+                        <span className="text-[11px] text-slate-400 block mt-1">{t.category}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
