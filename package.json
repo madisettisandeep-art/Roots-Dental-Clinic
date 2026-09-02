@@ -40,5 +40,19 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.23.13",
     "typescript": "^5.5.4"
+  },
+  "allowScripts": {
+    "@prisma/client": true,
+    "@prisma/engines": true,
+    "esbuild": true,
+    "prisma": true
+  },
+  "lavamoat": {
+    "allowScripts": {
+      "@prisma/client": true,
+      "@prisma/engines": true,
+      "esbuild": true,
+      "prisma": true
+    }
   }
 }
