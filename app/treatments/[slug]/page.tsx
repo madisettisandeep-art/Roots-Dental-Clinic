@@ -14,9 +14,12 @@ import {
   ArrowRight,
   ShieldCheck,
   ChevronRight,
+  Play,
 } from 'lucide-react';
 import { getWhatsAppLink } from '@/lib/whatsapp';
 import AppointmentCTA from '@/components/home/AppointmentCTA';
+import RootCanal3DVideoSection from '@/components/treatments/RootCanal3DVideoSection';
+import { FALLBACK_TREATMENTS } from '@/lib/treatmentsData';
 
 interface TreatmentDetailProps {
   params: {
@@ -24,11 +27,30 @@ interface TreatmentDetailProps {
   };
 }
 
+export async function generateStaticParams() {
+  return [
+    { slug: 'root-canal' },
+    { slug: 'dental-implants' },
+    { slug: 'teeth-cleaning' },
+    { slug: 'teeth-whitening' },
+    { slug: 'braces' },
+    { slug: 'wisdom-tooth-removal' },
+    { slug: 'tooth-extraction' },
+    { slug: 'pediatric-dentistry' },
+    { slug: 'cosmetic-dentistry' },
+    { slug: 'emergency-dental-care' },
+  ];
+}
+
 export async function generateMetadata({ params }: TreatmentDetailProps) {
   try {
-    const treatment = await prisma.treatment.findUnique({
+    let treatment = await prisma.treatment.findUnique({
       where: { slug: params.slug },
     });
+
+    if (!treatment && FALLBACK_TREATMENTS[params.slug]) {
+      treatment = FALLBACK_TREATMENTS[params.slug] as any;
+    }
 
     if (!treatment) {
       return {
@@ -49,6 +71,13 @@ export async function generateMetadata({ params }: TreatmentDetailProps) {
       },
     };
   } catch {
+    const fallback = FALLBACK_TREATMENTS[params.slug];
+    if (fallback) {
+      return {
+        title: `${fallback.name} in Hanamkonda & Kazipet | Roots Dental`,
+        description: fallback.summary,
+      };
+    }
     return {
       title: 'Treatment | Roots Super Speciality Dental Clinic',
     };
@@ -63,6 +92,10 @@ export default async function TreatmentDetailPage({ params }: TreatmentDetailPro
     });
   } catch (err) {
     console.error('Error loading treatment:', err);
+  }
+
+  if (!treatment && FALLBACK_TREATMENTS[params.slug]) {
+    treatment = FALLBACK_TREATMENTS[params.slug] as any;
   }
 
   if (!treatment) {
@@ -131,6 +164,16 @@ export default async function TreatmentDetailPage({ params }: TreatmentDetailPro
                   <MessageSquare className="w-4 h-4 text-emerald-400" />
                   <span>Enquire on WhatsApp</span>
                 </a>
+
+                {treatment.slug === 'root-canal' && (
+                  <a
+                    href="#3d-video"
+                    className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-navy-800/80 hover:bg-navy-800 text-aqua-300 border border-aqua-400/30 font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2 hover:border-aqua-400 shadow-glow-cyan"
+                  >
+                    <Play className="w-4 h-4 text-aqua-400 fill-aqua-400" />
+                    <span>Watch 3D Video</span>
+                  </a>
+                )}
               </div>
             </div>
 
@@ -264,10 +307,17 @@ export default async function TreatmentDetailPage({ params }: TreatmentDetailPro
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Treatment Specific FAQs */}
+      {/* 3. 3D Procedural Demonstration Video (Root Canal) */}
+      {treatment.slug === 'root-canal' && (
+        <RootCanal3DVideoSection treatmentName={treatment.name} />
+      )}
+
+      {/* 4. Treatment Specific FAQs & Clinical Disclaimer */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         {faqs.length > 0 && (
-          <div className="mt-20 pt-16 border-t border-white/10 max-w-4xl mx-auto">
+          <div className="pt-10 border-t border-white/10 max-w-4xl mx-auto">
             <h3 className="text-2xl font-bold font-display text-white text-center mb-8">
               Frequently Asked Questions About {treatment.name}
             </h3>

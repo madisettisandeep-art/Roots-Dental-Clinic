@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { Shield, Activity, Heart, Anchor, Waves, Eye, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react';
+import { Shield, Activity, Heart, Anchor, Waves, Eye, CheckCircle2, ChevronRight, Sparkles, Play } from 'lucide-react';
 import { getWhatsAppLink } from '@/lib/whatsapp';
 
 interface HotspotInfo {
@@ -407,6 +407,28 @@ export default function AnatomicalToothExplorer() {
                     View
                   </a>
                 </div>
+
+                {(selectedHotspot.id === 'pulp' || selectedHotspot.treatmentSlug === 'root-canal') && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent('open-video-modal', {
+                          detail: {
+                            videoSrc: '/videos/root-canal-treatment.mp4',
+                            poster: '/videos/root-canal-poster.jpg',
+                            title: '3D Root Canal Procedure Animation',
+                            treatmentSlug: 'root-canal',
+                          },
+                        })
+                      )
+                    }
+                    className="w-full py-2.5 px-3.5 rounded-2xl bg-gradient-to-r from-cyan-500/20 via-aqua-500/15 to-navy-900 border border-aqua-400/40 hover:border-aqua-400 text-aqua-300 text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-glow-cyan group"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-aqua-400 text-aqua-400 group-hover:scale-110 transition-transform" />
+                    <span>Watch 3D Root Canal Video</span>
+                  </button>
+                )}
               </div>
 
               <div className="mt-6 flex flex-col sm:flex-row gap-2.5">

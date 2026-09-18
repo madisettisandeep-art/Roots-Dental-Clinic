@@ -6,6 +6,7 @@ import Footer from '@/components/layout/Footer';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
 import FloatingWhatsApp from '@/components/layout/FloatingWhatsApp';
 import AppointmentModal from '@/components/booking/AppointmentModal';
+import VideoModal from '@/components/treatments/VideoModal';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -149,6 +150,7 @@ export default function RootLayout({
         <MobileBottomNav />
         <FloatingWhatsApp />
         <AppointmentModal />
+        <VideoModal />
       </body>
     </html>
   );

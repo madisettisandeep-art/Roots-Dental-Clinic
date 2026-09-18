@@ -16,6 +16,7 @@ import {
   Calendar,
   ChevronRight,
   CheckCircle2,
+  Play,
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -210,9 +211,35 @@ export default function TreatmentsExplorer() {
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-navy-800 to-navy-950 border border-aqua-400/30 flex items-center justify-center text-aqua-300 group-hover:scale-110 group-hover:border-aqua-400 transition-all">
                       <IconComponent className="w-6 h-6" />
                     </div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-aqua-400 px-3 py-1 rounded-full bg-navy-950 border border-white/10">
-                      {t.category}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {t.slug === 'root-canal' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.dispatchEvent(
+                              new CustomEvent('open-video-modal', {
+                                 detail: {
+                                   videoSrc: '/videos/root-canal-treatment.mp4',
+                                   poster: '/videos/root-canal-poster.jpg',
+                                   title: 'Root Canal Treatment (3D Clinical Animation)',
+                                   treatmentSlug: 'root-canal',
+                                 },
+                              })
+                            );
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-aqua-300 text-[10px] font-bold uppercase tracking-wider transition-all shadow-glow-cyan group/vbtn"
+                          title="Watch 3D Root Canal Animation Video"
+                        >
+                          <Play className="w-2.5 h-2.5 fill-aqua-300 text-aqua-300 group-hover/vbtn:scale-110 transition-transform" />
+                          <span>3D Video</span>
+                        </button>
+                      )}
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-aqua-400 px-3 py-1 rounded-full bg-navy-950 border border-white/10">
+                        {t.category}
+                      </span>
+                    </div>
                   </div>
 
                   <div>
