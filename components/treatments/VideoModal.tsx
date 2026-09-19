@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, Calendar, Volume2, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { X, Sparkles, Calendar, Volume2, ShieldCheck, CheckCircle2, Play } from 'lucide-react';
 
 interface VideoModalData {
   videoSrc?: string;
@@ -49,30 +49,51 @@ export default function VideoModal() {
     };
   }, []);
 
+  const [isPlaying, setIsPlaying] = useState(false);
+
   useEffect(() => {
     if (isOpen && videoRef.current) {
       videoRef.current.currentTime = 0;
-      videoRef.current.volume = 0.9;
-      videoRef.current.muted = false;
+      videoRef.current.load();
+      // Modern browsers guarantee playback when muted is set initially
+      videoRef.current.muted = true;
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // If browser blocks unmuted autoplay, try muted autoplay or wait for user interaction
-          if (videoRef.current) {
-            videoRef.current.muted = true;
-            videoRef.current.play().catch(() => {});
-          }
-        });
+        playPromise
+          .then(() => setIsPlaying(true))
+          .catch((err) => {
+            console.warn('Playback deferred until direct interaction:', err);
+            setIsPlaying(false);
+          });
       }
+    } else {
+      setIsPlaying(false);
     }
-  }, [isOpen]);
+  }, [isOpen, videoData.videoSrc]);
 
   const closeModal = () => {
     if (videoRef.current) {
       videoRef.current.pause();
     }
+    setIsPlaying(false);
     setIsOpen(false);
     document.body.style.overflow = '';
+  };
+
+  const togglePlay = () => {
+    if (!videoRef.current) return;
+    if (videoRef.current.paused) {
+      videoRef.current.muted = false;
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {
+        if (videoRef.current) {
+          videoRef.current.muted = true;
+          videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        }
+      });
+    } else {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
   };
 
   const handleBookNow = () => {
@@ -122,15 +143,42 @@ export default function VideoModal() {
         </div>
 
         {/* 16:9 Video Player */}
-        <div className="relative w-full aspect-video bg-black flex items-center justify-center">
+        <div className="relative w-full aspect-video bg-black flex items-center justify-center group">
           <video
             ref={videoRef}
-            src={videoData.videoSrc}
             poster={videoData.poster}
             controls
             playsInline
+            preload="auto"
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => setIsPlaying(false)}
             className="w-full h-full object-contain"
-          />
+          >
+            <source src={videoData.videoSrc} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+
+          {/* Big Center Play Button Overlay when paused */}
+          {!isPlaying && (
+            <div
+              onClick={togglePlay}
+              className="absolute inset-0 bg-navy-950/40 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 cursor-pointer transition-all hover:bg-navy-950/30 z-20"
+            >
+              <button
+                type="button"
+                className="w-20 h-20 rounded-full bg-gradient-to-r from-medical-blue via-cyan-500 to-aqua-400 p-0.5 shadow-glow-cyan transition-transform duration-300 hover:scale-110 flex items-center justify-center"
+                aria-label="Play Video"
+              >
+                <div className="w-full h-full rounded-full bg-navy-950/70 flex items-center justify-center text-white pl-1">
+                  <Play className="w-8 h-8 fill-white text-white" />
+                </div>
+              </button>
+              <span className="text-xs font-bold text-white uppercase tracking-wider bg-navy-950/90 px-4 py-1.5 rounded-full border border-aqua-400/30 backdrop-blur-md shadow-md">
+                Click To Play With Sound
+              </span>
+            </div>
+          )}
 
           {/* Floating Roots Dental Clinic Watermark */}
           <div className="absolute top-3 right-3 pointer-events-none z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-navy-950/85 border border-aqua-400/40 backdrop-blur-sm shadow-md">

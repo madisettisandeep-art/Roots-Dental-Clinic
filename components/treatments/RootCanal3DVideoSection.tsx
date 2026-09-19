@@ -195,9 +195,8 @@ export default function RootCanal3DVideoSection({
               <div className="relative w-full aspect-video bg-black flex items-center justify-center">
                 <video
                   ref={videoRef}
-                  src="/videos/root-canal-treatment.mp4"
                   poster="/videos/root-canal-poster.jpg"
-                  preload="metadata"
+                  preload="auto"
                   playsInline
                   onTimeUpdate={handleTimeUpdate}
                   onEnded={() => setIsPlaying(false)}
@@ -205,7 +204,10 @@ export default function RootCanal3DVideoSection({
                   onPause={() => setIsPlaying(false)}
                   onClick={togglePlay}
                   className="w-full h-full object-cover cursor-pointer"
-                />
+                >
+                  <source src="/videos/root-canal-treatment.mp4" type="video/mp4" />
+                  Your browser does not support the HTML5 video element.
+                </video>
 
                 {/* Big Center Play Button Overlay when paused */}
                 {!isPlaying && (
